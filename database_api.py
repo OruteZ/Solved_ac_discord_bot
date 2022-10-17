@@ -23,7 +23,7 @@ Tier_list = [
 
 def get_dataframe_from_backup():
     try:
-        BOJ_users_dataframe = pd.read_csv("backup.csv", sep=',')
+        BOJ_users_dataframe = pd.read_csv("BOJ_DB.csv", sep=',')
     except pd.errors.EmptyDataError:
         cname = ['discord_id', 'handle', 'bio', 'organizations', 'badge', 'background',
                  'profileImageUrl', 'solvedCount', 'solvedProblems', 'voteCount', 'class',
@@ -148,6 +148,9 @@ def find_solved_problem(old_problems, new_problems):
     return list(set(new_problems) - set(old_problems))
 
 
+def back_up(): BOJ_users_dataframe.to_csv("BOJ_DB.csv")
+
+
 # reset user data by discore id, return delta of changed values by Series
 def reset_user_data(discord_id):
     if discord_id not in BOJ_users_dataframe.index: return None
@@ -167,63 +170,3 @@ def reset_user_data(discord_id):
 
     BOJ_users_dataframe.loc[discord_id] = new_data
     return delta
-
-
-class Solved_ac_user:
-    def set_user_info(self):
-        # api에서 정보 가져오기
-        url = "https://solved.ac/api/v3/user/show"
-        querystring = {"handle": self.id}
-        headers = {"Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, params=querystring)
-
-        if response.status_code == 404: raise BOJIDNotFoundError
-
-        user_json_object = json.loads(response.text)
-        self.tier = user_json_object['tier']
-        self.rank = user_json_object['rank']
-        self.rating = user_json_object['rating']
-        self.solved_problem_count = user_json_object['solvedCount']
-
-    def __init__(self, ID):
-        self.id = ID
-        self.set_user_info()
-
-    def get_user_info(self):
-        return {
-            "id": self.id,
-            "tier": Tier_list[self.tier],
-            "rank": self.rank,
-            "rating": self.rating,
-        }
-
-    def Reset_user_info(self):
-        variances = {}
-
-        # api에서 정보 가져오기
-        url = "https://solved.ac/api/v3/user/show"
-        querystring = {"handle": self.id}
-        headers = {"Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, params=querystring)
-
-        if response.status_code == 404: raise BOJIDNotFoundError
-
-        try:
-            user_json_object = response.json()
-        except:
-            print("Json 변환 오류")
-            return {'tier': 0, 'rank': 0, 'rating': 0, 'solved_count': 0}
-
-        variances['tier'] = user_json_object['tier'] - self.tier
-        self.tier = user_json_object['tier']
-
-        variances['rank'] = user_json_object['rank'] - self.rank
-        self.rank = user_json_object['rank']
-
-        variances['rating'] = user_json_object['rating'] - self.rating
-        self.rating = user_json_object['rating']
-
-        variances['solved_count'] = user_json_object['solvedCount'] - self.solved_problem_count
-        self.solved_problem_count = user_json_object['solvedCount']
-
-        return variances

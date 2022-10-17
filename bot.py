@@ -56,7 +56,7 @@ def backup():
     print("backup user info")
     print(user_data_frame)
 
-    user_data_frame.to_csv("backup.csv")
+    user_data_frame.to_csv("BOJ_DB.csv")
 
 
 # 주기적으로 해야 할 일들
@@ -97,7 +97,7 @@ async def on_ready():
     print("유저 정보 로딩 중. . .")
     if not adding_user_info:
         try:
-            user_info = pd.read_csv("backup.csv", sep=',')
+            user_info = pd.read_csv("BOJ_DB.csv", sep=',')
         except pd.errors.EmptyDataError:
             return
 
