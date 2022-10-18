@@ -20,22 +20,25 @@ Tier_list = [
     "Master"
 ]
 
+BOJ_users_dataframe = pd.DataFrame()
 
-def get_dataframe_from_backup():
+
+def load_BOJ_dataframe():
+    global BOJ_users_dataframe
+
     try:
         BOJ_users_dataframe = pd.read_csv("BOJ_DB.csv", sep=',')
     except pd.errors.EmptyDataError:
-        cname = ['discord_id', 'handle', 'bio', 'organizations', 'badge', 'background',
+        cname = ['handle', 'bio', 'organizations', 'badge', 'background',
                  'profileImageUrl', 'solvedCount', 'solvedProblems', 'voteCount', 'class',
                  'classDecoration', 'tier', 'rating', 'ratingByProblemsSum',
                  'ratingByClass', 'ratingBySolvedCount', 'ratingByVoteCount', 'exp',
                  'rivalCount', 'reverseRivalCount', 'maxStreak', 'proUntil', 'rank']
         BOJ_users_dataframe = pd.DataFrame(columns=cname)
-        BOJ_users_dataframe.set_index('discord_id')
-        return BOJ_users_dataframe
+        BOJ_users_dataframe.set_index('handle')
 
 
-BOJ_users_dataframe = get_dataframe_from_backup()
+load_BOJ_dataframe()
 
 
 # return True if tag is available else False
@@ -131,35 +134,35 @@ def get_solved_problems(boj_id):
 
 
 # add user by two id, return False is boj_id no exist
-def add_user_data(discord_id, boj_id):
-    if discord_id in BOJ_users_dataframe.index: return True
+def add_user_data(boj_id):
+    if boj_id in BOJ_users_dataframe.index: return True
 
     try:
         user_info = get_user_data(boj_id)
     except BOJIDNotFoundError:
         return False
 
-    user_info['discord_id'] = discord_id
-    BOJ_users_dataframe.loc[discord_id] = user_info
+    BOJ_users_dataframe.loc[boj_id] = user_info
     return True
+
+
+def remove_user_data(boj_id):
+    BOJ_users_dataframe.drop(labels=boj_id, inplace=True)
 
 
 def find_solved_problem(old_problems, new_problems):
     return list(set(new_problems) - set(old_problems))
 
 
-def back_up(): BOJ_users_dataframe.to_csv("BOJ_DB.csv")
+def backup_BOJ_dataframe(): BOJ_users_dataframe.to_csv("BOJ_DB.csv")
 
 
 # reset user data by discore id, return delta of changed values by Series
-def reset_user_data(discord_id):
-    if discord_id not in BOJ_users_dataframe.index: return None
+def reset_user_data(boj_id):
+    if boj_id not in BOJ_users_dataframe.index: return None
 
-    boj_id = BOJ_users_dataframe.loc[discord_id, 'handle']
-
-    old_data = BOJ_users_dataframe.loc[discord_id]
+    old_data = BOJ_users_dataframe.loc[boj_id]
     new_data = get_user_data(boj_id)
-    new_data['discord_id'] = discord_id
 
     delta = None
     if new_data["solvedCount"] > old_data["solvedCount"]:
@@ -168,5 +171,5 @@ def reset_user_data(discord_id):
         delta = new_data[delta_index] - old_data[delta_index]
         delta['solvedProblems'] = find_solved_problem(old_data['solvedProblems'], new_data['solvedProblems'])
 
-    BOJ_users_dataframe.loc[discord_id] = new_data
+    BOJ_users_dataframe.loc[boj_id] = new_data
     return delta
