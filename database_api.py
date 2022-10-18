@@ -17,7 +17,7 @@ def load_BOJ_dataframe():
     global BOJ_users_dataframe
 
     try:
-        BOJ_users_dataframe = pd.read_csv("BOJ_DB.csv", sep=',')
+        BOJ_users_dataframe = pd.read_csv("BOJ_DB.csv", sep=',', index_col=0)
     except pd.errors.EmptyDataError:
         cname = ['handle', 'bio', 'organizations', 'badge', 'background',
                  'profileImageUrl', 'solvedCount', 'solvedProblems', 'voteCount', 'class',

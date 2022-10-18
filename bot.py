@@ -1,16 +1,14 @@
-import discord
-from discord.ext import commands
+import os
 
+import discord
+# 유저정보를 관리할 용도의 라이브러리 pandas
+from discord.ext import commands
 # 반복 작업을 위한 패키지
 from discord.ext import tasks
+
 # 딜레이 걸어서 부담 줄이는 용도
-import asyncio
 # solved ac 정보 가져오기
 from database_api import *
-# 유저정보를 관리할 용도의 라이브러리 pandas
-import pandas as pd
-
-import os
 
 intent = discord.Intents(value=3181056)
 
@@ -49,7 +47,8 @@ def load_dataframe():
 
     load_BOJ_dataframe()
     try:
-        user_dataframe = pd.read_csv("User_DB.csv", sep=',')
+        user_dataframe = pd.read_csv("User_DB.csv", sep=',', index_col=0)
+        print(user_dataframe)
     except pd.errors.EmptyDataError:
         cname = ['guild_id', 'text_channel_id', 'user_id', 'boj_id']
         user_dataframe = pd.DataFrame(columns=cname)
@@ -63,8 +62,16 @@ def backup_dataframe():
 
 def user_embed(boj_id):
     user_data_series = get_user_data(boj_id)
-    print(user_data_series)
-    return None
+
+    embed = discord.Embed(
+        color=Tier_color[Tier_list[user_data_series['tier']].split()[0]],
+        title=f"BOJ_Player : {boj_id}",
+        url=f"https://solved.ac/profile/{boj_id}"
+    )
+    embed.add_field(name='> 티어', value='`' + Tier_list[user_data_series['tier']] + '`')
+    embed.add_field(name='> 레이팅', value='`' + str(user_data_series['rating']) + '`')
+    embed.add_field(name='> 랭킹', value='`' + str(user_data_series['rank']) + '`')
+    return embed
 
 
 @bot.event
@@ -74,7 +81,7 @@ async def on_ready():
     load_dataframe()
     print('[알림][봇이 정상적으로 구동되었습니다.]')
 
-    # update_user_info.start()
+    #update_user_info.start()
 
 
 """
@@ -97,9 +104,9 @@ async def update_user_info():
                 title=f"{player_dsc} solved problem",
                 url=f"https://solved.ac/profile/{player_boj.id}"
             )
-            embed.add_field(name='> 해결한 문제', value='`' + str(changed['solved_count']) + '개`', inline=True)
-            embed.add_field(name='> 레이팅', value='`+' + str(changed['rating']) + '`', inline=True)
-            embed.add_field(name='> 랭킹', value='`' + str(changed['rank']) + '`', inline=True)
+            embed.add_field(name='> 해결한 문제', value='`' + str(changed['solved_count']) + '개`')
+            embed.add_field(name='> 레이팅', value='`+' + str(changed['rating']) + '`')
+            embed.add_field(name='> 랭킹', value='`' + str(changed['rank']) + '`')
             await alert_channel.send(embed=embed)
 
         if changed['tier'] > 0:
@@ -109,9 +116,9 @@ async def update_user_info():
                 url=f"https://solved.ac/profile/{player_boj.id}"
             )
             info = player_boj.get_user_info()
-            embed.add_field(name='> 티어', value='`' + info['tier'] + '`', inline=True)
-            embed.add_field(name='> 레이팅', value='`' + str(info['rating']) + '`', inline=True)
-            embed.add_field(name='> 랭킹', value='`' + str(info['rank']) + '`', inline=True)
+            embed.add_field(name='> 티어', value='`' + info['tier'] + '`')
+            embed.add_field(name='> 레이팅', value='`' + str(info['rating']) + '`')
+            embed.add_field(name='> 랭킹', value='`' + str(info['rank']) + '`')
             await alert_channel.send(embed=embed)
 """
 
@@ -128,7 +135,7 @@ async def repeat(ctx, message):
 
 
 @bot.command()
-async def 유저등록(ctx, boj_id, discord_user=None):
+async def 등록(ctx, boj_id, discord_user=None):
     global user_dataframe
 
     if discord_user is None:
@@ -140,7 +147,7 @@ async def 유저등록(ctx, boj_id, discord_user=None):
         else:
             discord_user = mentioned_members[0]
 
-    user_id = str(discord_user.id)
+    user_id = discord_user.id
     guild_id = ctx.guild.id
     channel_id = ctx.channel.id
 
@@ -149,10 +156,13 @@ async def 유저등록(ctx, boj_id, discord_user=None):
         await ctx.send(f"Error : 아이디 : {boj_id}를 solved.ac 페이지에서 찾을 수 없음.")
         return
 
-    old_user_info = user_dataframe.loc[user_dataframe['user_id'].isin([user_id])]
+    old_user_df = user_dataframe[user_dataframe['user_id'].isin([user_id])]
+    print(user_dataframe['user_id'].isin([user_id]))
 
-    if not old_user_info.empty:
-        old_boj_id = old_user_info.loc[0, 'boj_id']
+    if not old_user_df.empty:
+        print(old_user_df)
+        old_boj_id = old_user_df.loc[guild_id, 'boj_id']
+        print(old_boj_id)
 
         if old_boj_id != boj_id:
             await ctx.send(f"이미 solved.ac 계정 '{old_boj_id}'에 연동 되어 있습니다.\n연동 계정을 변경합니다.")
@@ -165,15 +175,18 @@ async def 유저등록(ctx, boj_id, discord_user=None):
         'text_channel_id': channel_id,
         'user_id': user_id,
         'boj_id': boj_id
-    }, name='guild_id')
+    }, name=guild_id)
 
-    user_dataframe = user_dataframe.append(new_user_series, ignore_index=True)
+    user_dataframe = user_dataframe.append(new_user_series)
 
     print(user_dataframe)
     backup_dataframe()
 
-    embed = user_embed(boj_id)
-    await ctx.send("등록 완료\n")
+    await ctx.send("등록 완료\n", embed=user_embed(boj_id))
+
+@bot.command()
+async def profile(ctx, boj_id):
+    await ctx.send(embed=user_embed(boj_id))
 
 
 bot.run(token=TOKEN)
