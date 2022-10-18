@@ -9,17 +9,7 @@ class BOJIDNotFoundError(Exception):
         super().__init__('해당 BOJ ID를 Solved.Ac 에서 찾을 수 없음')
 
 
-Tier_list = [
-    "Unrated",
-    "Bronze V", "Bronze IV", "Bronze III", "Bronze II", "Bronze I",
-    "Silver V", "Silver IV", "Silver III", "Silver II", "Silver I",
-    "Gold V", "Gold IV", "Gold III", "Gold II", "Gold I",
-    "Platinum V", "Platinum IV", "Platinum III", "Platinum II", "Platinum I",
-    "Diamond V", "Diamond IV", "Diamond III", "Diamond II", "Diamond I",
-    "Ruby V", "Ruby IV", "Ruby III", "Ruby II", "Ruby I",
-    "Master"
-]
-
+global BOJ_users_dataframe
 BOJ_users_dataframe = pd.DataFrame()
 
 
@@ -100,6 +90,9 @@ def BOJ_random_defense(Tier='', tags=None):
 
 # Get information of id by series
 def get_user_data(boj_id):
+    if boj_id in BOJ_users_dataframe.index:
+        return BOJ_users_dataframe.loc[boj_id]
+
     url = "https://solved.ac/api/v3/user/show"
     querystring = {"handle": boj_id}
     headers = {"Content-Type": "application/json"}
@@ -124,7 +117,7 @@ def get_solved_problems(boj_id):
     while True:
         querystring = {"query": "@" + boj_id, "page": page, "sort": "id", "direction": "asc"}
         response = requests.request("GET", url, headers=headers, params=querystring)
-        if response is 'Too Many Requests': return False
+        if response == 'Too Many Requests': return False
 
         lists = list(map(lambda item: item['problemId'], json.loads(response.text)['items']))
         if not lists: break
@@ -141,7 +134,6 @@ def add_user_data(boj_id):
         user_info = get_user_data(boj_id)
     except BOJIDNotFoundError:
         return False
-
     BOJ_users_dataframe.loc[boj_id] = user_info
     return True
 

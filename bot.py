@@ -30,6 +30,16 @@ Tier_color = {
     "Ruby": 0XFF0000,
     "Master": 0XCC00FF
 }
+Tier_list = [
+    "Unrated",
+    "Bronze V", "Bronze IV", "Bronze III", "Bronze II", "Bronze I",
+    "Silver V", "Silver IV", "Silver III", "Silver II", "Silver I",
+    "Gold V", "Gold IV", "Gold III", "Gold II", "Gold I",
+    "Platinum V", "Platinum IV", "Platinum III", "Platinum II", "Platinum I",
+    "Diamond V", "Diamond IV", "Diamond III", "Diamond II", "Diamond I",
+    "Ruby V", "Ruby IV", "Ruby III", "Ruby II", "Ruby I",
+    "Master"
+]
 
 user_dataframe = pd.DataFrame()
 
@@ -51,6 +61,12 @@ def backup_dataframe():
     user_dataframe.to_csv("User_DB.csv")
 
 
+def user_embed(boj_id):
+    user_data_series = get_user_data(boj_id)
+    print(user_data_series)
+    return None
+
+
 @bot.event
 async def on_ready():
     await bot.change_presence(status=discord.Status.online, activity=discord.Game("개발"))
@@ -60,10 +76,6 @@ async def on_ready():
 
     # update_user_info.start()
 
-
-# 주기적으로 해야 할 일들
-
-# 1. 각 유저 정보 갱신
 
 """
 @tasks.loop(seconds=5)
@@ -137,13 +149,10 @@ async def 유저등록(ctx, boj_id, discord_user=None):
         await ctx.send(f"Error : 아이디 : {boj_id}를 solved.ac 페이지에서 찾을 수 없음.")
         return
 
-    print(user_dataframe)
-    old_user_info = user_dataframe[user_dataframe['user_id'].isin([user_id])]
+    old_user_info = user_dataframe.loc[user_dataframe['user_id'].isin([user_id])]
 
     if not old_user_info.empty:
-        print("hshnsnhsnhns")
         old_boj_id = old_user_info.loc[0, 'boj_id']
-        print(old_boj_id)
 
         if old_boj_id != boj_id:
             await ctx.send(f"이미 solved.ac 계정 '{old_boj_id}'에 연동 되어 있습니다.\n연동 계정을 변경합니다.")
@@ -151,28 +160,20 @@ async def 유저등록(ctx, boj_id, discord_user=None):
             await ctx.send(f"이미 solved.ac 계정 '{old_boj_id}'에 연동 되어 있습니다.")
             return
 
-    user_dataframe = user_dataframe.append({
+    new_user_series = pd.Series({
         'guild_id': guild_id,
         'text_channel_id': channel_id,
         'user_id': user_id,
         'boj_id': boj_id
-    }, ignore_index=True)
+    }, name='guild_id')
+
+    user_dataframe = user_dataframe.append(new_user_series, ignore_index=True)
+
     print(user_dataframe)
-
-    await ctx.send("등록 완료")
-
     backup_dataframe()
 
-    """tier_color = Tier_color[list(info['tier'].split())[0]]
-    embed = discord.Embed(color=tier_color, title=f"PROFILE : {info['id']}",
-                          url=f"https://solved.ac/profile/{info['id']}")
-    embed.add_field(name='> 티어', value='`' + info['tier'] + '`', inline=True)
-    embed.add_field(name='> 레이팅', value='`' + str(info['rating']) + '`', inline=True)
-    embed.add_field(name='> 랭킹', value='`' + str(info['rank']) + '`', inline=True)
-    embed.set_footer(text=f"{discord_id} 1일1백준에 합류하신걸 환영합니다")
-
-    await ctx.send("등록 완료\n", embed=embed)
-    """
+    embed = user_embed(boj_id)
+    await ctx.send("등록 완료\n")
 
 
 bot.run(token=TOKEN)
