@@ -109,6 +109,11 @@ def get_user_data(boj_id):
 
 # Get all problems that user solved by list
 def get_solved_problems(boj_id):
+    """
+    get all problems that user solved
+    :param boj_id: users name
+    :return: id of problems by list
+    """
     url = "https://solved.ac/api/v3/search/problem"
     headers = {"Content-Type": "application/json"}
 
@@ -126,8 +131,13 @@ def get_solved_problems(boj_id):
     return solved_problem_list
 
 
-# add user by two id, return False is boj_id no exist
 def add_user_data(boj_id):
+    """
+    add user by backjoon online judge id
+
+    :param boj_id: backjoon online judge name
+    :return: False is boj_id no exist else True
+    """
     if boj_id in BOJ_users_dataframe.index: return True
 
     try:
