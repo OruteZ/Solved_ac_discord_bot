@@ -114,23 +114,22 @@ async def update_user_data():
 
         boj_id = df['boj_id'].values[0]
         channels_id = df['text_channel_id'].tolist()
-        guilds_id = df['guild_id'].tolist()
         delta = db.reset_user_data(boj_id)
-        print(discord_user.name, boj_id)
-        print(delta)
-        print(channels_id)
 
         if delta is None: continue
         await bot.wait_until_ready()
+        print("solved alert")
+        print(delta)
 
-        if delta['solvedCount'] == 1:
+        if delta['solvedCount'] >= 1:
             for idx in range(df.shape[0]):
-                guild = await bot.fetch_guild(guilds_id[idx])
-                print(guild.name)
+                #guild = await bot.fetch_guild(guilds_id[idx])
+                #print(guild.name)
                 channel = await bot.fetch_channel(channels_id[idx])
-                print(channel.name)
                 await channel.send(f"{discord_user.mention} solved problem {delta['solvedProblems'][0]}"
                                    , embed=problem_embed(delta['solvedProblems'][0]))
+
+    backup_dataframe()
 
     """,
         if changed['solved_count'] > 0:

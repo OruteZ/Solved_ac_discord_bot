@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import requests
 import json
 import random
@@ -9,8 +10,13 @@ class BOJIDNotFoundError(Exception):
         super().__init__('해당 BOJ ID를 Solved.Ac 에서 찾을 수 없음')
 
 
-global BOJ_users_dataframe
 BOJ_users_dataframe = pd.DataFrame()
+
+
+def string2list(target):
+    if type(target) == list : return target
+    target = target[2:-2]
+    return list(map(int, target.split(',')))
 
 
 def load_BOJ_dataframe():
@@ -20,11 +26,12 @@ def load_BOJ_dataframe():
         BOJ_users_dataframe = pd.read_csv("BOJ_DB.csv", sep=',', index_col=0)
     except pd.errors.EmptyDataError:
         cname = ['handle', 'bio', 'organizations', 'badge', 'background',
-                 'profileImageUrl', 'solvedCount', 'solvedProblems', 'voteCount', 'class',
+                 'profileImageUrl', 'solvedCount', 'voteCount', 'class',
                  'classDecoration', 'tier', 'rating', 'ratingByProblemsSum',
                  'ratingByClass', 'ratingBySolvedCount', 'ratingByVoteCount', 'exp',
-                 'rivalCount', 'reverseRivalCount', 'maxStreak', 'proUntil', 'rank']
+                 'rivalCount', 'reverseRivalCount', 'maxStreak', 'proUntil', 'rank', 'solvedProblems']
         BOJ_users_dataframe = pd.DataFrame(columns=cname)
+
         BOJ_users_dataframe.set_index('handle')
 
 
@@ -153,7 +160,8 @@ def remove_user_data(boj_id):
 
 
 def find_solved_problem(old_problems, new_problems):
-    return list(set(new_problems) - set(old_problems))
+    old_problems = string2list(old_problems)
+    return list(set(new_problems).difference(old_problems))
 
 
 def backup_BOJ_dataframe(): BOJ_users_dataframe.to_csv("BOJ_DB.csv")
@@ -168,11 +176,11 @@ def reset_user_data(boj_id):
     """
     if boj_id not in BOJ_users_dataframe.index: return None
 
-    old_data = BOJ_users_dataframe.loc[boj_id]
+    old_data = get_user_data(boj_id, reset=False)
     new_data = get_user_data(boj_id, reset=True)
 
-    #print(old_data)
-    #print(new_data)
+    # print(old_data)
+    # print(new_data)
 
     delta = None
     if new_data["solvedCount"] > old_data["solvedCount"]:
@@ -181,7 +189,7 @@ def reset_user_data(boj_id):
         delta = new_data[delta_index] - old_data[delta_index]
         delta['solvedProblems'] = find_solved_problem(old_data['solvedProblems'], new_data['solvedProblems'])
 
-    BOJ_users_dataframe.loc[boj_id] = new_data
+    BOJ_users_dataframe.loc[boj_id, :] = new_data
     return delta
 
 
