@@ -89,8 +89,8 @@ def BOJ_random_defense(Tier='', tags=None):
 
 
 # Get information of id by series
-def get_user_data(boj_id):
-    if boj_id in BOJ_users_dataframe.index:
+def get_user_data(boj_id, reset=False):
+    if boj_id in BOJ_users_dataframe.index and not reset:
         return BOJ_users_dataframe.loc[boj_id]
 
     url = "https://solved.ac/api/v3/user/show"
@@ -159,12 +159,20 @@ def find_solved_problem(old_problems, new_problems):
 def backup_BOJ_dataframe(): BOJ_users_dataframe.to_csv("BOJ_DB.csv")
 
 
-# reset user data by discore id, return delta of changed values by Series
 def reset_user_data(boj_id):
+    """
+    reset user data by boj id
+
+    :param boj_id: backjoon online judge name
+    :return: delta of changed values by Series ('solvedCount', 'tier', 'rating', 'rank', 'solvedProblems')
+    """
     if boj_id not in BOJ_users_dataframe.index: return None
 
     old_data = BOJ_users_dataframe.loc[boj_id]
-    new_data = get_user_data(boj_id)
+    new_data = get_user_data(boj_id, reset=True)
+
+    #print(old_data)
+    #print(new_data)
 
     delta = None
     if new_data["solvedCount"] > old_data["solvedCount"]:
@@ -175,3 +183,15 @@ def reset_user_data(boj_id):
 
     BOJ_users_dataframe.loc[boj_id] = new_data
     return delta
+
+
+def get_problem_data(problem_id):
+    url = "https://solved.ac/api/v3/problem/show"
+    querystring = {"problemId": problem_id}
+    headers = {"Content-Type": "application/json"}
+    response = requests.request("GET", url, headers=headers, params=querystring)
+
+    if response.status_code == 404: raise BOJIDNotFoundError
+
+    problem_data = response.json()
+    return pd.Series(problem_data)
