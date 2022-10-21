@@ -121,10 +121,11 @@ async def update_user_data():
         print("solved alert")
         print(delta)
 
-        if delta['solvedCount'] >= 1:
+        if delta['solvedCount'] == 1:
             for idx in range(df.shape[0]):
-                #guild = await bot.fetch_guild(guilds_id[idx])
-                #print(guild.name)
+                if not delta['solvedProblems']: continue
+                # guild = await bot.fetch_guild(guilds_id[idx])
+                # print(guild.name)
                 channel = await bot.fetch_channel(channels_id[idx])
                 await channel.send(f"{discord_user.mention} solved problem {delta['solvedProblems'][0]}"
                                    , embed=problem_embed(delta['solvedProblems'][0]))
@@ -199,11 +200,8 @@ async def 등록(ctx, boj_id, discord_user=None):
             await ctx.send(f"이미 solved.ac 계정 '{old_boj_id}'에 연동 되어 있습니다.\n연동 계정을 변경합니다.")
 
             user_dataframe.loc[user_id, "boj_id"] = boj_id
-            backup_dataframe()
-            return
         else:
             await ctx.send(f"이미 solved.ac 계정 '{old_boj_id}'에 연동 되어 있습니다.")
-            return
 
     new_user_series = pd.Series({
         'user_id': user_id,
@@ -211,6 +209,9 @@ async def 등록(ctx, boj_id, discord_user=None):
         'text_channel_id': channel_id,
         'boj_id': boj_id
     }, name=user_id)
+
+    if list(filter(lambda i: old_user_df.loc[i].equals(new_user_series), old_user_df.index)):
+        return
 
     user_dataframe = user_dataframe.append(new_user_series)
 

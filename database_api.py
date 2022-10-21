@@ -14,7 +14,9 @@ BOJ_users_dataframe = pd.DataFrame()
 
 
 def string2list(target):
-    if type(target) == list : return target
+    if target == '[]': return []
+    if type(target) == list: return target
+
     target = target[2:-2]
     return list(map(int, target.split(',')))
 
@@ -96,7 +98,7 @@ def BOJ_random_defense(Tier='', tags=None):
 
 
 # Get information of id by series
-def get_user_data(boj_id, reset=False):
+def get_user_data(boj_id, reset=False, get_solved_prob=False):
     if boj_id in BOJ_users_dataframe.index and not reset:
         return BOJ_users_dataframe.loc[boj_id]
 
@@ -109,7 +111,7 @@ def get_user_data(boj_id, reset=False):
 
     user_info = response.json()
 
-    user_info['solvedProblems'] = get_solved_problems(boj_id)
+    if get_solved_prob: user_info['solvedProblems'] = get_solved_problems(boj_id)
 
     return pd.Series(user_info)
 
@@ -129,7 +131,9 @@ def get_solved_problems(boj_id):
     while True:
         querystring = {"query": "@" + boj_id, "page": page, "sort": "id", "direction": "asc"}
         response = requests.request("GET", url, headers=headers, params=querystring)
-        if response == 'Too Many Requests': return False
+        if response.text == 'Too Many Requests':
+            print("Too many request")
+            return []
 
         lists = list(map(lambda item: item['problemId'], json.loads(response.text)['items']))
         if not lists: break
@@ -148,7 +152,7 @@ def add_user_data(boj_id):
     if boj_id in BOJ_users_dataframe.index: return True
 
     try:
-        user_info = get_user_data(boj_id)
+        user_info = get_user_data(boj_id, reset=True, get_solved_prob=True)
     except BOJIDNotFoundError:
         return False
     BOJ_users_dataframe.loc[boj_id] = user_info
@@ -177,18 +181,21 @@ def reset_user_data(boj_id):
     if boj_id not in BOJ_users_dataframe.index: return None
 
     old_data = get_user_data(boj_id, reset=False)
-    new_data = get_user_data(boj_id, reset=True)
+    new_data = get_user_data(boj_id, reset=True, get_solved_prob=False)
 
     # print(old_data)
     # print(new_data)
 
     delta = None
     if new_data["solvedCount"] > old_data["solvedCount"]:
+        new_data['solvedProblems'] = get_solved_problems(boj_id)
+
         delta_index = ['solvedCount', 'tier', 'rating', 'rank']
 
         delta = new_data[delta_index] - old_data[delta_index]
         delta['solvedProblems'] = find_solved_problem(old_data['solvedProblems'], new_data['solvedProblems'])
-
+    else:
+        new_data['solvedProblems'] = old_data['solvedProblems']
     BOJ_users_dataframe.loc[boj_id, :] = new_data
     return delta
 
