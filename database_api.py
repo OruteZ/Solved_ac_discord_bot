@@ -3,7 +3,7 @@ import numpy as np
 import requests
 import json
 import random
-
+import time
 
 class BOJIDNotFoundError(Exception):
     def __init__(self):
@@ -108,6 +108,10 @@ def get_user_data(boj_id, reset=False, get_solved_prob=False):
     response = requests.request("GET", url, headers=headers, params=querystring)
 
     if response.status_code == 404: raise BOJIDNotFoundError
+    while response.text == 'Too Many Requests':
+        print(response.text)
+        time.sleep(5)
+        response = requests.request("GET", url, headers=headers, params=querystring)
 
     user_info = response.json()
 
@@ -131,9 +135,10 @@ def get_solved_problems(boj_id):
     while True:
         querystring = {"query": "@" + boj_id, "page": page, "sort": "id", "direction": "asc"}
         response = requests.request("GET", url, headers=headers, params=querystring)
-        if response.text == 'Too Many Requests':
-            print("Too many request")
-            return []
+        while response.text == 'Too Many Requests':
+            print(response.text)
+            time.sleep(5)
+            response = requests.request("GET", url, headers=headers, params=querystring)
 
         lists = list(map(lambda item: item['problemId'], json.loads(response.text)['items']))
         if not lists: break

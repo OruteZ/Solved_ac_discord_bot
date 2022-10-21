@@ -102,9 +102,14 @@ async def on_ready():
     update_user_data.start()
 
 
+cnt = 0
 @tasks.loop(seconds=5)
 async def update_user_data():
-    print("update_user_info")
+    global cnt
+    print("update_user_info", cnt)
+    cnt+=1
+
+    await bot.wait_until_ready()
 
     discord_user_id_list = list(set(user_dataframe.index))
     for dsc_user_id in discord_user_id_list:
@@ -117,7 +122,6 @@ async def update_user_data():
         delta = db.reset_user_data(boj_id)
 
         if delta is None: continue
-        await bot.wait_until_ready()
         print("solved alert")
         print(delta)
 
@@ -185,6 +189,10 @@ async def 등록(ctx, boj_id, discord_user=None):
     user_id = discord_user.id
     guild_id = ctx.guild.id
     channel_id = ctx.channel.id
+
+    guild_df: pd.DataFrame = user_dataframe[user_dataframe['guild_id'] == guild_id]
+    if not guild_df.empty:
+        channel_id = guild_df.iloc[0].loc['text_channel_id']
 
     success = db.add_user_data(boj_id)
     if not success:
