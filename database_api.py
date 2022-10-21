@@ -5,9 +5,15 @@ import json
 import random
 import time
 
+
 class BOJIDNotFoundError(Exception):
     def __init__(self):
         super().__init__('해당 BOJ ID를 Solved.Ac 에서 찾을 수 없음')
+
+
+class TooManyRequestsError(Exception):
+    def __init__(self):
+        super().__init__('API request가 너무 많아 잠시 휴식 중. . . ')
 
 
 BOJ_users_dataframe = pd.DataFrame()
@@ -42,6 +48,8 @@ load_BOJ_dataframe()
 
 # return True if tag is available else False
 def is_tag_available(tag):
+    print('requests')
+
     url = "https://solved.ac/api/v3/search/tag"
     querystring = {"query": "#" + tag, "page": "1"}
     headers = {"Content-Type": "application/json"}
@@ -102,16 +110,16 @@ def get_user_data(boj_id, reset=False, get_solved_prob=False):
     if boj_id in BOJ_users_dataframe.index and not reset:
         return BOJ_users_dataframe.loc[boj_id]
 
+    print('requests get user data :', boj_id)
+
+
     url = "https://solved.ac/api/v3/user/show"
     querystring = {"handle": boj_id}
     headers = {"Content-Type": "application/json"}
     response = requests.request("GET", url, headers=headers, params=querystring)
 
     if response.status_code == 404: raise BOJIDNotFoundError
-    while response.text == 'Too Many Requests':
-        print(response.text)
-        time.sleep(5)
-        response = requests.request("GET", url, headers=headers, params=querystring)
+    if response.text == 'Too Many Requests': raise TooManyRequestsError
 
     user_info = response.json()
 
@@ -127,6 +135,8 @@ def get_solved_problems(boj_id):
     :param boj_id: users name
     :return: id of problems by list
     """
+    print('requests')
+
     url = "https://solved.ac/api/v3/search/problem"
     headers = {"Content-Type": "application/json"}
 
@@ -135,10 +145,9 @@ def get_solved_problems(boj_id):
     while True:
         querystring = {"query": "@" + boj_id, "page": page, "sort": "id", "direction": "asc"}
         response = requests.request("GET", url, headers=headers, params=querystring)
-        while response.text == 'Too Many Requests':
-            print(response.text)
-            time.sleep(5)
-            response = requests.request("GET", url, headers=headers, params=querystring)
+
+        if response.status_code == 404: raise BOJIDNotFoundError
+        if response.text == 'Too Many Requests': raise TooManyRequestsError
 
         lists = list(map(lambda item: item['problemId'], json.loads(response.text)['items']))
         if not lists: break

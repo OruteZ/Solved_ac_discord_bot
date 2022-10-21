@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 # 반복 작업을 위한 패키지
 from discord.ext import tasks
+import asyncio
 import database_api as db
 import pandas as pd
 
@@ -103,11 +104,13 @@ async def on_ready():
 
 
 cnt = 0
-@tasks.loop(seconds=5)
+
+
+@tasks.loop(seconds=60)
 async def update_user_data():
     global cnt
     print("update_user_info", cnt)
-    cnt+=1
+    cnt += 1
 
     await bot.wait_until_ready()
 
@@ -119,7 +122,12 @@ async def update_user_data():
 
         boj_id = df['boj_id'].values[0]
         channels_id = df['text_channel_id'].tolist()
-        delta = db.reset_user_data(boj_id)
+        try:
+            delta = db.reset_user_data(boj_id)
+        except db.TooManyRequestsError:
+            print('too many requests')
+            await asyncio.sleep(6000)
+            continue
 
         if delta is None: continue
         print("solved alert")
