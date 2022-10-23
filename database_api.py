@@ -230,3 +230,7 @@ def delete_user_data(boj_id):
         raise BOJIDNotFoundError
 
     BOJ_users_dataframe.drop(labels=[boj_id], inplace=True)
+
+
+def get_BOJ_dataframe_index():
+    return BOJ_users_dataframe.index
