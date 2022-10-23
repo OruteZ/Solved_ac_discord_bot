@@ -242,4 +242,6 @@ async def profile(ctx, boj_id):
     await ctx.send(embed=user_embed(boj_id))
 
 
+
+
 bot.run(token=TOKEN)
