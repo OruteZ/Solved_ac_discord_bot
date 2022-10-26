@@ -251,7 +251,18 @@ async def 해제(ctx, discord_user=None):
         else:
             discord_user = mentioned_members[0]
 
-    user_dataframe.drop(labels=[discord_user], inplace=True)
+    user_dataframe.drop(index=discord_user.id, inplace=True, axis=0)
+    backup_dataframe()
+    await ctx.send("등록을 해제하였습니다.")
+
+
+@bot.command()
+async def Database(ctx):
+    if ctx.author.id != 192598372979310592:
+        ctx.send("봇 주인만 사용 할 수 있는 명령어 입니다.")
+
+    await ctx.send(file=discord.File(r'./BOJ_DB.csv'))
+    await ctx.send(file=discord.File(r'./User_DB.csv'))
 
 
 bot.run(token=TOKEN)

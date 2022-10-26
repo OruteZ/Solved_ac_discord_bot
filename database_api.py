@@ -229,7 +229,7 @@ def delete_user_data(boj_id):
     if boj_id not in BOJ_users_dataframe.index:
         raise BOJIDNotFoundError
 
-    BOJ_users_dataframe.drop(labels=[boj_id], inplace=True)
+    BOJ_users_dataframe.drop(index=boj_id, inplace=True, axis=0)
 
 
 def get_BOJ_dataframe_index():
