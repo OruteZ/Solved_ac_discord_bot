@@ -103,24 +103,20 @@ async def on_ready():
     update_user_data.start()
 
 
-cnt = 0
-
-
 @tasks.loop(seconds=60)
 async def update_user_data():
-    global cnt
-    print("update_user_info", cnt)
-    cnt += 1
-
     await bot.wait_until_ready()
 
     discord_user_id_list = list(set(user_dataframe.index))
+    boj_id_check_list = list(db.get_BOJ_dataframe_index())
+
     for dsc_user_id in discord_user_id_list:
         discord_user = await bot.fetch_user(dsc_user_id)
 
         df = user_dataframe[user_dataframe.index == dsc_user_id]
 
         boj_id = df['boj_id'].values[0]
+        boj_id_check_list.remove(boj_id)
         channels_id = df['text_channel_id'].tolist()
         try:
             delta = db.reset_user_data(boj_id)
@@ -142,6 +138,8 @@ async def update_user_data():
                 await channel.send(f"{discord_user.mention} solved problem {delta['solvedProblems'][0]}"
                                    , embed=problem_embed(delta['solvedProblems'][0]))
 
+    for garbage_boj_id in boj_id_check_list:
+        db.delete_user_data(garbage_boj_id)
     backup_dataframe()
 
     """,
@@ -240,6 +238,20 @@ async def 등록(ctx, boj_id, discord_user=None):
 @bot.command()
 async def profile(ctx, boj_id):
     await ctx.send(embed=user_embed(boj_id))
+
+
+@bot.command()
+async def 해제(ctx, discord_user=None):
+    if discord_user is None:
+        discord_user = ctx.author
+    else:
+        mentioned_members = ctx.message.mentions
+        if not mentioned_members:
+            discord_user = ctx.author
+        else:
+            discord_user = mentioned_members[0]
+
+    user_dataframe.drop(labels=[discord_user], inplace=True)
 
 
 bot.run(token=TOKEN)

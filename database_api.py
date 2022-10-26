@@ -112,7 +112,6 @@ def get_user_data(boj_id, reset=False, get_solved_prob=False):
 
     print('requests get user data :', boj_id)
 
-
     url = "https://solved.ac/api/v3/user/show"
     querystring = {"handle": boj_id}
     headers = {"Content-Type": "application/json"}
@@ -224,3 +223,14 @@ def get_problem_data(problem_id):
 
     problem_data = response.json()
     return pd.Series(problem_data)
+
+
+def delete_user_data(boj_id):
+    if boj_id not in BOJ_users_dataframe.index:
+        raise BOJIDNotFoundError
+
+    BOJ_users_dataframe.drop(labels=[boj_id], inplace=True)
+
+
+def get_BOJ_dataframe_index():
+    return BOJ_users_dataframe.index
